@@ -1,0 +1,11 @@
+{
+	"name":"RavenTools/RightscaleAPIClient",
+	"autoload":{
+		"psr-0":{
+			"RavenTools\\RightscaleAPIClient":"src"
+		}
+	},
+	"require":{
+		"guzzlehttp/guzzle":"~3.8"
+	}
+}
