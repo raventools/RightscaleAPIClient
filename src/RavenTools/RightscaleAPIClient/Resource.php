@@ -18,7 +18,8 @@ class Resource extends Helper{
 		// add delete method
 		$this->methods->destroy = function($params) use ($client,$href) {
 			$params['url'] = $href;
-			$client->delete($params);
+			print_r($params);
+			return $client->delete($params);
 		};
 
 		// add update method
@@ -46,5 +47,14 @@ class Resource extends Helper{
 		} else {
 			return new Resource($client,$resource_type,$path,$data);
 		}
+	}
+
+	public function __tostring() {
+		$out = new \StdClass();
+		$out->_class = "Resource";
+		$out->resource_type = $This->resource_type;
+		$out->path = $This->path;
+		$out->methods = array_keys(get_object_vars($this->methods));
+		return print_r($out,true);
 	}
 }

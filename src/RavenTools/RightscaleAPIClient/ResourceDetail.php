@@ -18,6 +18,7 @@ class ResourceDetail extends Helper {
 
 	public function __tostring() {
 		$out = new \StdClass();
+		$out->_class = "ResourceDetail";
 		$out->resource_type = $this->resource_type;
 		$out->href = $this->href;
 		$out->name = $this->name;

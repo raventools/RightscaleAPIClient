@@ -54,11 +54,11 @@ class Client extends Helper {
 
 	public function login() {
 		$params->url = "/api/session";
-		$params->post['email'] = $this->email;
-		$params->post['password'] = $this->password;
-		$params->post['account_href'] = "/api/accounts/{$this->account_id}";
+		$params->email = $this->email;
+		$params->password = $this->password;
+		$params->account_href = "/api/accounts/{$this->account_id}";
 		$response = $this->post($params);
-		return ($response->getStatusCode() == 204);
+		return (is_null($response));
 	}
 
 	private function init_methods() {
@@ -74,17 +74,70 @@ class Client extends Helper {
 
 	public function get($params) {
 		$params = (object)$params;
+		$params->get = get_object_vars($params);
+		unset($params->get['url']);
 		$response = $this->request("GET",$params);
-		if(get_class($response) == "Guzzle\Http\Message\Response") {
-			return $this->decodeBody($response);
+		if($response === false) {
+			return false;
+		} elseif(get_class($response) == "Guzzle\Http\Message\Response") {
+			$code = $response->getStatusCode();
+			echo "code: $code\n";
+			switch($code) {
+				case "200":
+					return $this->decodeBody($response);
+				case "301":
+				case "302":
+					error_log("got redirect");
+					break;
+				case "404":
+					throw new Exception("API route not found");
+				default:
+					throw new Exception("API error code {$code}");
+			}
 		} else {
+			// why would this happen?
+			error_log("not false and not a response object");
 			return $response;
 		}
 	}
 
 	public function post($params) {
 		$params = (object)$params;
-		return $this->request("POST",$params);
+		$params->post = get_object_vars($params);
+		unset($params->post['url']);
+		$response = $this->request("POST",$params);
+
+		if($response === false) {
+			return false;
+		} elseif(get_class($response) == "Guzzle\Http\Message\Response") {
+			$code = $response->getStatusCode();
+			echo "code: $code\n";
+			switch($code) {
+				case "201":
+				case "202":
+					$href = $response->getLocation();
+					$resource_type = Helper::get_resource_type($href,-2);
+					return Resource::process($this, $resource_type, $href);
+				case "204":
+					return null;
+				case "200":
+					if(substr("rightscale",$response->getContentType())) {
+						$data = $this->decodeBody($response);
+						$ret = array();
+						foreach($data as $obj) {
+							$ret[] = new ResourceDetail($this,$resource_type,$params->url,$obj);
+						}
+						return $ret;
+					}
+				case "301":
+				case "302":
+					// TODO update api url and repost
+					throw new Exception("API route not found");
+				default:
+					throw new Exception("API error code {$code}");
+			}
+		}
+		throw new Exception("shouldn't get here");
 	}
 
 	public function put($params) {

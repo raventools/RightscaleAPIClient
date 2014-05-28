@@ -14,8 +14,6 @@ class Resources extends Helper implements \Iterator {
 
 		$this->methods->index = function($params) use (&$that,$client,$resource_type,$href) {
 
-			echo "rt $resource_type\n";
-
 			if($resource_type == "session") {
 				$params['url'] = $href;
 				$hash = $client->get($params);
@@ -25,12 +23,18 @@ class Resources extends Helper implements \Iterator {
             $params['url'] = $href;
             $hash = $client->get($params);
             $that->resources = Resource::process($client,$resource_type,$href,$hash);
-			return $that->resources;
+			return $that;
+		};
+
+		$this->methods->create = function($params) use ($client,$href) {
+			$params['url'] = $href;
+			return $client->post($params);
 		};
 	}
 
 	public function __tostring() {
 		$out = new \StdClass();
+		$out->_class = "Resources";
 		$out->resource_type = $this->resource_type;
 		$out->path = $this->path;
 		$out->resources = $this->resources;

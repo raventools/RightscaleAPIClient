@@ -8,8 +8,17 @@ class Helper {
 	protected $methods = null;
 
 	public function __call($method,$args) {
-		$method = $this->methods->$method;
-		return $method($args[0]);
+		if(isset($this->methods->$method)) {
+			$method = $this->methods->$method;
+			return $method($args[0]);
+		}
+	}
+
+	public function api_methods() {
+		if(isset($this->methods)) {
+			return array_keys(get_object_vars($this->methods));
+		}
+		return false;
 	}
 
 	protected function getAssociatedResources($client,$links) {
@@ -22,9 +31,11 @@ class Helper {
 		foreach($rels as $rel => $hrefs) {
 			$that = clone $this;
 			$this->methods->$rel = function($params) use ($that,$client,$rel,$hrefs) {
+				/*
 				echo "rel $rel\n";
 				print_r($hrefs);
 				print_r($params);
+				*/
 				if(count($hrefs) == 1) {
 
 					if(Helper::has_id($params) || Helper::is_singular($rel)) {
