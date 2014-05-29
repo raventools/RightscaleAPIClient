@@ -12,6 +12,7 @@ class Helper {
 			$method = $this->methods->$method;
 			return $method($args[0]);
 		}
+		throw new \Exception("method not found");
 	}
 
 	public function api_methods() {
@@ -62,6 +63,8 @@ class Helper {
 						echo "no id call\n";
 						$resource_type = Helper::get_resource_type($hrefs[0],-1);
 						$path = Helper::add_id_and_params_to_path($hrefs[0],$params);
+						echo "resource_type: $resource_type\n";
+						echo "path: $path\n";
 						return new Resources($client,$resource_type,$path);
 					}
 

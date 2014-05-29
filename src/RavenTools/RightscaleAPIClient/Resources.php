@@ -8,28 +8,31 @@ class Resources extends Helper implements \Iterator {
 	public $path = null;
 	public $resources = null;
 
-	public function __construct($client, $resource_type, $href, $hash = null) {
+	public function __construct($client, $resource_type, $path, $hash = null) {
 
 		$that = &$this;
 
+		$this->resource_type = $resource_type;
+		$this->path = $path;
+
 		$this->resources = array();
 
-		$this->methods->index = function($params) use (&$that,$client,$resource_type,$href) {
+		$this->methods->index = function($params) use (&$that,$client,$resource_type,$path) {
 
 			if($resource_type == "session") {
-				$params['url'] = $href;
+				$params['url'] = $path;
 				$hash = $client->get($params);
-				return new ResourceDetail($client,$resource_type,$href,$hash);
+				return new ResourceDetail($client,$resource_type,$path,$hash);
 			} 
 
-            $params['url'] = $href;
+            $params['url'] = $path;
             $hash = $client->get($params);
-            $that->resources = Resource::process($client,$resource_type,$href,$hash);
+            $that->resources = Resource::process($client,$resource_type,$path,$hash);
 			return $that;
 		};
 
-		$this->methods->create = function($params) use ($client,$href) {
-			$params['url'] = $href;
+		$this->methods->create = function($params) use ($client,$path) {
+			$params['url'] = $path;
 			return $client->post($params);
 		};
 	}
@@ -39,7 +42,7 @@ class Resources extends Helper implements \Iterator {
 		$out->_class = "Resources";
 		$out->resource_type = $this->resource_type;
 		$out->path = $this->path;
-		$out->resources = $this->resources;
+		$out->resources = count($this->resources);
 		$out->methods = array_keys(get_object_vars($this->methods));
 		return print_r($out,true);
 	}
