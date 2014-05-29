@@ -12,6 +12,8 @@ class Resources extends Helper implements \Iterator {
 
 		$that = &$this;
 
+		$this->resources = array();
+
 		$this->methods->index = function($params) use (&$that,$client,$resource_type,$href) {
 
 			if($resource_type == "session") {

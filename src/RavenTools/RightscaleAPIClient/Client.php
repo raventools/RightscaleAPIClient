@@ -64,7 +64,7 @@ class Client extends Helper {
 	private function init_methods() {
 		$params->url = $this->root_resource;
 		$data = $this->get($params);
-		$this->getAssociatedResources($this,$data->links);
+		$this->get_associated_resources($this,$data->links);
 	}
 
 	private function decodeBody($response) {

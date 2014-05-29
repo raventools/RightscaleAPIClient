@@ -12,8 +12,12 @@ $client = new RightscaleClient(array(
 				"password" => $config->password
 			));
 
+#$response = $client->deployments(array("id"=>463292004))->show()->alerts()->index();
+#$response = $client->deployments(array("id"=>453652001))->show()->alerts()->index();
+#$response = $client->deployments()->index();
+$response = $client->alerts(array("id"=>31245779004))->show()->alert_spec();
+
 /*
-$response = $client->deployments(array("id"=>463292004))->show();
 #$response = $client->cookbooks()->index();
 $response = $client->deployments()->create(array(
 				"deployment[name]"=>"test api deployment (3)",
@@ -21,9 +25,10 @@ $response = $client->deployments()->create(array(
 			));
 */
 
-$response = $client->deployments(array("id"=>463298004))->destroy();
-//$response = $client->deployments(array("id"=>463292004))->show();
+//$response = $client->deployments(array("id"=>463298004))->destroy();
+//$response = $client->deployments(array("id"=>463298004))->show();
 
+#$response = $client->deployments()->index();
 
 if(is_array($response)) {
 	print_r($response);

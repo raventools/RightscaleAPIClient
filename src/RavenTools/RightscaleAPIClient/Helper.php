@@ -21,7 +21,7 @@ class Helper {
 		return false;
 	}
 
-	protected function getAssociatedResources($client,$links) {
+	protected function get_associated_resources($client,$links,&$associations=null) {
 		$rels = new \StdClass();
 
 		foreach($links as $l) {
@@ -136,6 +136,17 @@ class Helper {
 		foreach($links as $l) {
 			if($l->rel == "self") {
 				return $l->href;
+			}
+		}
+		return false;
+	}
+
+	public static function get_and_delete_href_from_links(&$links) {
+		foreach($links as $k => $l) {
+			if($l->rel == "self") {
+				$href = $l->href;
+				unset($links[$k]);
+				return $href;
 			}
 		}
 		return false;
