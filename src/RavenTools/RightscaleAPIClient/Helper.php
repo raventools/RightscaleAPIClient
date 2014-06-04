@@ -7,6 +7,37 @@ class Helper {
 	protected $rels = null;
 	protected $methods = null;
 
+	// Some resource_types are not the same as the last thing in the URL, put these here to ensure consistency
+	protected $INCONSISTENT_RESOURCE_TYPES = array(
+				"current_instance" => "instance",
+				"data" => "monitoring_metric_data",
+				"setting" => "multi_cloud_image_setting"
+			);
+
+	/**
+	 * Some RightApi::Resources have methods that operate on the resource type itself
+	 * and not on a particular one (ie: without specifying an id). Place these here:
+	 */
+	protected $RESOURCE_SPECIAL_ACTIONS = array(
+				"instances" => array("multi_terminate" => "do_post", "multi_run_executable" => "do_post"),
+				"inputs" => array("multi_update" => "do_post"),
+				"tags" => array(
+					"by_tag" => "do_post", 
+					"by_resource" => "do_post", 
+					"multi_add" => "do_post", 
+					"multi_delete" => "do_post"
+					),
+				"backups" => array("cleanup" => "do_post")
+			);
+
+	// List of resources that are available as instance-facing calls
+	protected $INSTANCE_FACING_RESOURCES = array(
+			"backups", "live_tasks", "volumes", "volume_attachments", "volume_snapshots", "volume_types"
+			);
+
+	/**
+	 * magic method to call an automatically-created closure method
+	 */
 	public function __call($method,$args) {
 		if(isset($this->methods->$method)) {
 			$method = $this->methods->$method;
@@ -15,6 +46,9 @@ class Helper {
 		throw new \Exception("method not found");
 	}
 
+	/**
+	 * return array of configured closure methods
+	 */
 	public function api_methods() {
 		if(isset($this->methods)) {
 			return array_keys(get_object_vars($this->methods));
@@ -22,7 +56,10 @@ class Helper {
 		return false;
 	}
 
-	protected function get_associated_resources($client,$links,&$associations=null) {
+	/**
+	 * creates instance methods out of the associated resources from links
+	 */
+	protected function get_associated_resources($client,$links,Set &$associations=null) {
 		$rels = new \StdClass();
 
 		foreach($links as $l) {
@@ -30,17 +67,17 @@ class Helper {
 		}
 
 		foreach($rels as $rel => $hrefs) {
-			$that = clone $this;
-			$this->methods->$rel = function($params) use ($that,$client,$rel,$hrefs) {
-				/*
-				echo "rel $rel\n";
-				print_r($hrefs);
-				print_r($params);
-				*/
+			if(!is_null($associations)) {
+				$associations[] = $rel;
+			}
+
+			$that = &$this;
+
+			$this->methods->$rel = function($params) use (&$that,&$client,$rel,$hrefs) {
+
 				if(count($hrefs) == 1) {
 
 					if(Helper::has_id($params) || Helper::is_singular($rel)) {
-						echo "yeah we got an id\n";
 						// user wants a single resource
 
 						// calling data() you don't want a resource object back
@@ -60,19 +97,26 @@ class Helper {
 						return Resource::Process($client,$resource_type,$path);
 
 					} else {
-						echo "no id call\n";
 						$resource_type = Helper::get_resource_type($hrefs[0],-1);
 						$path = Helper::add_id_and_params_to_path($hrefs[0],$params);
-						echo "resource_type: $resource_type\n";
-						echo "path: $path\n";
 						return new Resources($client,$resource_type,$path);
 					}
 
 				} else {
-					
+					// TODO implement multi-hrefs
+					throw new \Exception("multi-hrefs unsupported");
 				}
 			};
 		}
+	}
+
+	public static function insert_in_path($path, $term) {
+		if(strpos($path,"?") !== false) {
+			$new_path = str_replace("?","/{$term}?",$path);
+		} else {
+			$new_path = "{$path}/{$term}";
+		}
+		return $new_path;
 	}
 
 	public static function is_singular($str) {
@@ -131,8 +175,13 @@ class Helper {
 		return (is_array($params) && array_key_exists("filters",$params));
 	}
 
-	public static function get_resource_type($href,$offset) {
-		return Helper::get_singular(end(array_slice(explode("/",$href),$offset,1)));
+	public static function get_resource_type($href,$offset=null) {
+		if(!is_null($offset)) {
+			return Helper::get_singular(end(array_slice(explode("/",$href),$offset,1)));
+		} elseif(strpos($href,"rightscale") !== false) {
+			preg_match("/\.rightscale\.([^+]+)\+json/",$href,$m);
+			return $m[1];
+		}
 	} 
 
 	public static function get_href_from_links($links) {

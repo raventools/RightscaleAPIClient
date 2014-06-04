@@ -17,26 +17,23 @@ class Resource extends Helper{
 		$this->hash = $hash;
 
 		// add delete method
-		$this->methods->destroy = function($params) use ($client,$href) {
-			$params['url'] = $href;
-			return $client->delete($params);
+		$this->methods->destroy = function($params) use (&$client,$href) {
+			return $client->do_delete($href,$params);
 		};
 
 		// add update method
-		$this->methods->update = function($params) use ($client,$href) {
-			$params['url'] = $href;
-			$client->put($params);
+		$this->methods->update = function($params) use (&$client,$href) {
+			$client->do_put($href,$params);
 		};
 
 		// add show method
-		$this->methods->show = function($params) use ($client,$resource_type,$href) {
-			$params['url'] = $href;
-			$hash = $client->get($params);
+		$this->methods->show = function($params) use (&$client,$resource_type,$href) {
+			$hash = $client->do_get($href,$params);
 			return new ResourceDetail($client,$resource_type,$href,$hash);
 		};
 	}
 
-	public static function process($client, $resource_type, $path, $data = null) {
+	public static function process(&$client, $resource_type, $path, $data = null) {
 		if(is_array($data)) {
 			$ret = array();
 			foreach($data as $obj) {
@@ -54,11 +51,11 @@ class Resource extends Helper{
 	 */
 	public function __call($method,$args) {
 		try {
+			// throws exception when method isn't found
 			return parent::__call($method,$args);
 		} catch(\Exception $e) {
 			$params = $args[0];
-			$params->url = "{$this->path}/{$method}";
-			return $this->client->post($params);
+			return $this->client->do_post("{$this->path}/{$method}",$params);
 		}
 	}
 

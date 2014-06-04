@@ -4,6 +4,7 @@ namespace RavenTools\RightscaleAPIClient;
 
 class Resources extends Helper implements \Iterator {
 
+	public $client = null;
 	public $resource_type = null;
 	public $path = null;
 	public $resources = null;
@@ -12,29 +13,51 @@ class Resources extends Helper implements \Iterator {
 
 		$that = &$this;
 
+		// fix exceptional resource types
+		if(array_key_exists($singular = self::get_singular($resource_type),$this->INCONSISTENT_RESOURCE_TYPES)) {
+			$resource_type = $this->INCONSISTENT_RESOURCE_TYPES[$singular];
+		}
+
+		$this->client = $client;
 		$this->resource_type = $resource_type;
 		$this->path = $path;
 
 		$this->resources = array();
 
-		$this->methods->index = function($params) use (&$that,$client,$resource_type,$path) {
+		$this->methods->index = function($params) use (&$that,&$client,$resource_type,$path) {
 
 			if($resource_type == "session") {
-				$params['url'] = $path;
-				$hash = $client->get($params);
+				$hash = $client->do_get($path,$params);
 				return new ResourceDetail($client,$resource_type,$path,$hash);
 			} 
 
-            $params['url'] = $path;
-            $hash = $client->get($params);
-            $that->resources = Resource::process($client,$resource_type,$path,$hash);
+			$hash = $client->do_get($path,$params);
+			$that->resources = Resource::process($client,$resource_type,$path,$hash);
 			return $that;
 		};
 
-		$this->methods->create = function($params) use ($client,$path) {
-			$params['url'] = $path;
-			return $client->post($params);
+		$this->methods->create = function($params) use (&$client,$path) {
+			return $client->do_post($path,$params);
 		};
+
+		if(isset($this->RESOURCE_SPECIAL_ACTIONS[$resource_type])) {
+			foreach($this->RESOURCE_SPECIAL_ACTIONS[$resource_type] as $meth => $action) {
+				$action_path = Helper::insert_in_path($path,$meth);
+				$this->methods->$meth = function($params) use (&$client,$action,$action_path) {
+					return $client->$action($action_path,$params);
+				};
+			}
+		}
+	}
+
+	public function __call($method,$args) {
+		try {
+			// throws exception when method isn't found
+			return parent::__call($method,$args);
+		} catch(\Exception $e) {
+			$params = $args[0];
+			return $this->client->do_post("{$this->path}/{$method}",$params);
+		}
 	}
 
 	public function __tostring() {

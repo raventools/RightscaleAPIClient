@@ -5,6 +5,7 @@ namespace RavenTools\RightscaleAPIClient;
 use Guzzle\Http\Client as GuzzleClient;
 use Guzzle\Plugin\Cookie\CookiePlugin;
 use Guzzle\Plugin\Cookie\CookieJar\ArrayCookieJar;
+use Guzzle\Http\Exception\BadResponseException;
 
 class Client extends Helper {
 
@@ -53,17 +54,15 @@ class Client extends Helper {
 	}
 
 	public function login() {
-		$params->url = "/api/session";
-		$params->email = $this->email;
-		$params->password = $this->password;
-		$params->account_href = "/api/accounts/{$this->account_id}";
-		$response = $this->post($params);
+		$params['email'] = $this->email;
+		$params['password'] = $this->password;
+		$params['account_href'] = "/api/accounts/{$this->account_id}";
+		$response = $this->do_post("/api/session",$params);
 		return (is_null($response));
 	}
 
 	private function init_methods() {
-		$params->url = $this->root_resource;
-		$data = $this->get($params);
+		$data = $this->do_get($this->root_resource,$params);
 		$this->get_associated_resources($this,$data->links);
 	}
 
@@ -72,16 +71,13 @@ class Client extends Helper {
 		return json_decode($body);
 	}
 
-	public function get($params) {
-		$params = (object)$params;
-		$params->get = get_object_vars($params);
-		unset($params->get['url']);
-		$response = $this->request("GET",$params);
+	public function do_get($url,$params) {
+		$response = $this->request("GET",$url,$params);
+
 		if($response === false) {
 			return false;
 		} elseif(get_class($response) == "Guzzle\Http\Message\Response") {
 			$code = $response->getStatusCode();
-			echo "code: $code\n";
 			switch($code) {
 				case "200":
 					return $this->decodeBody($response);
@@ -101,17 +97,13 @@ class Client extends Helper {
 		}
 	}
 
-	public function post($params) {
-		$params = (object)$params;
-		$params->post = get_object_vars($params);
-		unset($params->post['url']);
-		$response = $this->request("POST",$params);
+	public function do_post($url,$params) {
+		$response = $this->request("POST",$url,$params);
 
 		if($response === false) {
 			return false;
 		} elseif(get_class($response) == "Guzzle\Http\Message\Response") {
 			$code = $response->getStatusCode();
-			echo "code: $code\n";
 			switch($code) {
 				case "201":
 				case "202":
@@ -121,42 +113,70 @@ class Client extends Helper {
 				case "204":
 					return null;
 				case "200":
-					if(substr("rightscale",$response->getContentType())) {
+					$content_type = $response->getContentType();
+					$ret = array();
+					if(strpos($content_type,"rightscale") !== false) {
+						$resource_type = Helper::get_resource_type($content_type);
 						$data = $this->decodeBody($response);
-						$ret = array();
 						foreach($data as $obj) {
-							$ret[] = new ResourceDetail($this,$resource_type,$params->url,$obj);
+							$ret[] = new ResourceDetail($this,$resource_type,$url,$obj);
 						}
-						return $ret;
 					}
+					return $ret;
 				case "301":
 				case "302":
 					// TODO update api url and repost
-					throw new Exception("API route not found");
+					throw new \Exception("API route not found");
 				default:
-					throw new Exception("API error code {$code}");
+					throw new \Exception("API error code {$code}");
 			}
 		}
 		throw new Exception("shouldn't get here");
 	}
 
-	public function put($params) {
+	public function do_put($url,$params) {
 		$params = (object)$params;
-		return $this->request("PUT",$params);
+		return $this->request("PUT",$url,$params);
 	}
 
-	public function delete($params) {
+	public function do_delete($url,$params) {
 		$params = (object)$params;
-		return $this->request("DELETE",$params);
+		return $this->request("DELETE",$url,$params);
 	}
 
-	private function request($type,$params) {
-		$request = $this->guzzle->$type("{$this->api_url}{$params->url}",$params->get,$params->post);
-		$request->addHeader("X-Api-Version",$this->api_version);
+	private function request($type,$url,$params) {
 		try {
+			$request = $this->guzzle->$type(
+						"{$this->api_url}{$url}",
+						array("X-Api-Version"=>$this->api_version)
+					);
+
+			$query = $request->getQuery();
+			$query->setAggregator(new RightscaleAggregator);
+
+			// add query parameters, array-ify if necessary
+			if(is_array($params)) {
+				foreach($params as $name => $value) {
+					if(is_array($value) && count($value) == 1) {
+						$query->add("{$name}[]",$array_element);
+					} elseif(is_array($value)) {
+						foreach($value as $array_element) {
+							$query->add($name,$array_element);
+						}
+					} else {
+						$query->add($name,$value);
+					}
+				}
+			}
+
 			$response = $request->send();
-		} catch(Exception $e) {
+		} catch(BadResponseException $e) {
 			error_log("request exception ".$e->getMessage());
+			echo 'Request exception: ' . $e->getMessage();
+			echo 'HTTP request URL: ' . $e->getRequest()->getUrl() . "\n";
+			echo 'HTTP request: ' . $e->getRequest() . "\n";
+			echo 'HTTP response status: ' . $e->getResponse()->getStatusCode() . "\n";
+			echo 'HTTP response: ' . $e->getResponse() . "\n";
 			return false;
 		}
 		return $response;
