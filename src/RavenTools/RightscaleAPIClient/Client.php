@@ -158,7 +158,7 @@ class Client extends Helper {
 			if(is_array($params)) {
 				foreach($params as $name => $value) {
 					if(is_array($value) && count($value) == 1) {
-						$query->add("{$name}[]",$array_element);
+						$query->add("{$name}[]",end($value));
 					} elseif(is_array($value)) {
 						foreach($value as $array_element) {
 							$query->add($name,$array_element);
