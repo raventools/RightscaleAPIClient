@@ -9,6 +9,8 @@ class ResourceDetail extends Helper {
 
 	public function __construct($client,$resource_type,$href,$hash) {
 
+		Helper::__construct();
+
 		$that = &$this;
 
 		$this->client = $client;

@@ -11,6 +11,8 @@ class Resource extends Helper{
 
 	public function __construct($client,$resource_type,$href,$hash=null) {
 
+		Helper::__construct();
+
 		$this->client = $client;
 		$this->resource_type = $resource_type;
 		$this->path = $href;

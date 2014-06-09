@@ -11,6 +11,8 @@ class Resources extends Helper implements \Iterator {
 
 	public function __construct($client, $resource_type, $path, $hash = null) {
 
+		Helper::__construct();
+
 		$that = &$this;
 
 		// fix exceptional resource types

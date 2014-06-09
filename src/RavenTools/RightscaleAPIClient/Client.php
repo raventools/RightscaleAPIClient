@@ -22,6 +22,8 @@ class Client extends Helper {
 
 	public function __construct($params) {
 
+		Helper::__construct($params);
+
 		$params = (object)$params;
 
 		// set required parameters
@@ -62,7 +64,7 @@ class Client extends Helper {
 	}
 
 	private function init_methods() {
-		$data = $this->do_get($this->root_resource,$params);
+		$data = $this->do_get($this->root_resource);
 		$this->get_associated_resources($this,$data->links);
 	}
 
@@ -71,7 +73,7 @@ class Client extends Helper {
 		return json_decode($body);
 	}
 
-	public function do_get($url,$params) {
+	public function do_get($url,$params = null) {
 		$response = $this->request("GET",$url,$params);
 
 		if($response === false) {

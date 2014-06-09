@@ -35,13 +35,22 @@ class Helper {
 			"backups", "live_tasks", "volumes", "volume_attachments", "volume_snapshots", "volume_types"
 			);
 
+	public function __construct() { 
+		if(is_null($this->methods)) {
+			$this->methods = new \StdClass();
+		}
+	}
+
 	/**
 	 * magic method to call an automatically-created closure method
 	 */
 	public function __call($method,$args) {
 		if(isset($this->methods->$method)) {
 			$method = $this->methods->$method;
-			return $method($args[0]);
+			if(!empty($args)) {
+				return $method($args[0]);
+			}
+			return $method();
 		}
 		throw new \Exception("method not found");
 	}
@@ -60,20 +69,25 @@ class Helper {
 	 * creates instance methods out of the associated resources from links
 	 */
 	protected function get_associated_resources($client,$links,Set &$associations=null) {
-		$rels = new \StdClass();
 
+		$rels = array();
 		foreach($links as $l) {
-			$rels->{$l->rel} = (is_array($l->href) ? $l->href : array($l->href));
+			if(array_key_exists($l->rel,$rels)) {
+				$rels[$l->rel][] = $l->href;
+			} else {
+				$rels[$l->rel] = array($l->href);
+			}
 		}
 
 		foreach($rels as $rel => $hrefs) {
+
 			if(!is_null($associations)) {
 				$associations[] = $rel;
 			}
 
 			$that = &$this;
 
-			$this->methods->$rel = function($params) use (&$that,&$client,$rel,$hrefs) {
+			$this->methods->$rel = function($params = null) use (&$that,&$client,$rel,$hrefs) {
 
 				if(count($hrefs) == 1) {
 
@@ -103,8 +117,26 @@ class Helper {
 					}
 
 				} else {
-					// TODO implement multi-hrefs
-					throw new \Exception("multi-hrefs unsupported");
+					$resources = array();
+					if(Helper::has_id($params) || Helper::is_singular($rel)) {
+						foreach($hrefs as $href) {
+							// user wants a single resource. Doing show, update, delete, etc
+							if(Helper::is_singular($rel)) {
+								$resource_type = Helper::get_resource_type($href,-2);
+							} else {
+								$resource_type = Helper::get_resource_type($href,-1);
+							}
+							$path = Helper::add_id_and_params_to_path($href,$params);
+							$resources[] = Resource::process($client,$resource_type,$path);
+						}
+					} else {
+						foreach($hrefs as $href) {
+							$resource_type = Helper::get_resource_type($href,-1);
+							$path = Helper::add_id_and_params_to_path($href,$params);
+							$resources[] = new Resources($client,$resource_type,$path);
+						}
+					}
+					return $resources;
 				}
 			};
 		}
@@ -161,7 +193,7 @@ class Helper {
 					},$filters);
 			$path .= "?filter[]=".implode("&filter[]=",$filters);
 			$path .= "&{$params_string}";
-		} elseif(strlen($params_string) > 0) {
+		} elseif(isset($params_string) && strlen($params_string) > 0) {
 			$path .= "?{$params_string}";
 		}
 		return $path;
