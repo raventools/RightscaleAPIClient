@@ -26,7 +26,7 @@ class Resources extends Helper implements \Iterator {
 
 		$this->resources = array();
 
-		$this->methods->index = function($params) use (&$that,&$client,$resource_type,$path) {
+		$this->methods->index = function($params=null) use (&$that,&$client,$resource_type,$path) {
 
 			if($resource_type == "session") {
 				$hash = $client->do_get($path,$params);
@@ -38,14 +38,14 @@ class Resources extends Helper implements \Iterator {
 			return $that;
 		};
 
-		$this->methods->create = function($params) use (&$client,$path) {
+		$this->methods->create = function($params=null) use (&$client,$path) {
 			return $client->do_post($path,$params);
 		};
 
 		if(isset($this->RESOURCE_SPECIAL_ACTIONS[$resource_type])) {
 			foreach($this->RESOURCE_SPECIAL_ACTIONS[$resource_type] as $meth => $action) {
 				$action_path = Helper::insert_in_path($path,$meth);
-				$this->methods->$meth = function($params) use (&$client,$action,$action_path) {
+				$this->methods->$meth = function($params=null) use (&$client,$action,$action_path) {
 					return $client->$action($action_path,$params);
 				};
 			}

@@ -36,7 +36,7 @@ class ResourceDetail extends Helper {
 
 		foreach($raw_actions as $a) {
 			$action_name = $a->rel;
-			$this->methods->$action_name = function($params) use (&$client,$hash,$action_name) {
+			$this->methods->$action_name = function($params=null) use (&$client,$hash,$action_name) {
 				return $client->do_post("{$hash->href}/{$action_name}",$params);
 			};
 		}
@@ -59,11 +59,11 @@ class ResourceDetail extends Helper {
 			}
 		}
 
-		$this->methods->destroy = function($params) use (&$client,$href) {
+		$this->methods->destroy = function($params=null) use (&$client,$href) {
 			return $client->do_delete($href,$params);
 		};
 
-		$this->methods->update = function($params) use (&$client,$href,$resource_type) {
+		$this->methods->update = function($params=null) use (&$client,$href,$resource_type) {
 
 			if($resource_type == "account") {
 				// HACK: handle child_account update specially
@@ -72,7 +72,7 @@ class ResourceDetail extends Helper {
 			return $client->do_put($href,$params);
 		};
 
-		$this->methods->show = function($params) use (&$that) {
+		$this->methods->show = function($params=null) use (&$that) {
 			return $that;
 		};
 	}

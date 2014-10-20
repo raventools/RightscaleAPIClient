@@ -87,7 +87,7 @@ class Helper {
 
 			$that = &$this;
 
-			$this->methods->$rel = function($params = null) use (&$that,&$client,$rel,$hrefs) {
+			$this->methods->$rel = function($params=null) use (&$that,&$client,$rel,$hrefs) {
 
 				if(count($hrefs) == 1) {
 
