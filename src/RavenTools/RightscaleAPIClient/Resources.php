@@ -52,7 +52,7 @@ class Resources extends Helper implements \Iterator {
 		}
 	}
 
-	public function __call($method,$args) {
+	public function __call($method,$args=array()) {
 		try {
 			// throws exception when method isn't found
 			return parent::__call($method,$args);

@@ -44,7 +44,7 @@ class Helper {
 	/**
 	 * magic method to call an automatically-created closure method
 	 */
-	public function __call($method,$args) {
+	public function __call($method,$args=array()) {
 		if(isset($this->methods->$method)) {
 			$method = $this->methods->$method;
 			if(!empty($args)) {
