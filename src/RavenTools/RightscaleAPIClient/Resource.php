@@ -19,17 +19,17 @@ class Resource extends Helper{
 		$this->hash = $hash;
 
 		// add delete method
-		$this->methods->destroy = function($params) use (&$client,$href) {
+		$this->methods->destroy = function($params=array()) use (&$client,$href) {
 			return $client->do_delete($href,$params);
 		};
 
 		// add update method
-		$this->methods->update = function($params) use (&$client,$href) {
+		$this->methods->update = function($params=array()) use (&$client,$href) {
 			$client->do_put($href,$params);
 		};
 
 		// add show method
-		$this->methods->show = function($params) use (&$client,$resource_type,$href) {
+		$this->methods->show = function($params=array()) use (&$client,$resource_type,$href) {
 			$hash = $client->do_get($href,$params);
 			return new ResourceDetail($client,$resource_type,$href,$hash);
 		};
