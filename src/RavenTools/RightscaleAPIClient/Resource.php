@@ -48,6 +48,18 @@ class Resource extends Helper{
 		}
 	}
 
+	public static function process_detailed(&$client, $resource_type, $path, $data = null) {
+		if(is_array($data)) {
+			return self::process($client, $resource_type, $path, $data);
+		} else {
+			if($obj_href = Helper::get_href_from_links($obj->links)) {
+				return new ResourceDetail($client, $resource_type, $obj_href, $data);
+			} else {
+				return self::process($client, $resource_type, $path, $data);
+			}
+		}
+	}
+
 	/**
 	 * if we haven't defined a method, append to href and post
 	 */
