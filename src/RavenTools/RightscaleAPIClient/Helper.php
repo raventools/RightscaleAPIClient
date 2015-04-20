@@ -94,6 +94,7 @@ class Helper {
 					if(Helper::has_id($params) || Helper::is_singular($rel)) {
 						// user wants a single resource
 
+
 						// calling data() you don't want a resource object back
 						if($rel == "data") {
 							return new ResourceDetail($hrefs[0],$params);
@@ -178,16 +179,20 @@ class Helper {
 			unset($params['id']);
 		}
 
+		if(is_array($params) && array_key_exists("filter",$params)) {
+			$filters = $params['filter'];
+			unset($params['filter']);
+		}
+
 		if(is_array($params)) {
 			$params_esc = array();
-			array_walk($params, function($v,$k) use ($params_esc) {
+			array_walk($params, function($v,$k) use (&$params_esc) {
 						$params_esc[] = "{$k}=".urlencode($v);
 					});
 			$params_string = implode("&",$params_esc);
 		}
 
-		if(Helper::has_filters($params)) {
-			$filters = $params['filters'];
+		if(isset($filters) && is_array($filters)) {
 			$filters = array_map(function($v) {
 						return urlencode($v);
 					},$filters);
@@ -204,13 +209,13 @@ class Helper {
 	}
 
 	public static function has_filters($params) {
-		return (is_array($params) && array_key_exists("filters",$params));
+		return (is_array($params) && array_key_exists("filter",$params));
 	}
 
 	public static function get_resource_type($href,$offset=null) {
 		if(!is_null($offset)) {
 			return Helper::get_singular(end(array_slice(explode("/",$href),$offset,1)));
-		} elseif(strpos($href,"rightscale") !== false) {
+		} elseif(strstr($href,"rightscale")) {
 			preg_match("/\.rightscale\.([^+]+)\+json/",$href,$m);
 			return $m[1];
 		}

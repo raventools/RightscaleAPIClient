@@ -29,11 +29,11 @@ class Resources extends Helper implements \Iterator {
 		$this->methods->index = function($params=null) use (&$that,&$client,$resource_type,$path) {
 
 			if($resource_type == "session") {
-				$hash = $client->do_get($path,$params);
+				list($resource_type,$path,$hash) = $client->do_get($path,$params);
 				return new ResourceDetail($client,$resource_type,$path,$hash);
 			} 
 
-			$hash = $client->do_get($path,$params);
+			list($resource_type,$path,$hash) = $client->do_get($path,$params);
 			$that->resources = Resource::process($client,$resource_type,$path,$hash);
 			return $that;
 		};

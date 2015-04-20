@@ -29,8 +29,8 @@ class Resource extends Helper{
 		};
 
 		// add show method
-		$this->methods->show = function($params=null) use (&$client,$resource_type,$href) {
-			$hash = $client->do_get($href,$params);
+		$this->methods->show = function($params=null) use (&$client,$href) {
+			list($resource_type,$href,$hash) = $client->do_get($href,$params);
 			return new ResourceDetail($client,$resource_type,$href,$hash);
 		};
 	}

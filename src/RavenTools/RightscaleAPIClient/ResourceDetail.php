@@ -17,17 +17,25 @@ class ResourceDetail extends Helper {
 		$this->resource_type = $resource_type;
 		$this->href = $href;
 
-		$links = $hash->links;
-		unset($hash->links);
+		if(!is_null($hash) && isset($hash->links)) {
+			$links = $hash->links;
+			unset($hash->links);
+		} else {
+			$links = array();
+		}
 
-		$raw_actions = $hash->actions;
-		unset($hash->actions);
+		if(!is_null($hash) && isset($hash->actions)) {
+			$raw_actions = $hash->actions;
+			unset($hash->actions);
+		} else {
+			$raw_actions = array();
+		}
+
+		if(is_null($hash)) {
+			$hash = new \StdClass();
+		}
 
 		$hash->href = Helper::get_and_delete_href_from_links($links);
-
-//		print_r($links);
-#		print_r($raw_actions);
-#		print_r($hash);
 
 		// Add links to attributes set and create a method that returns the links
 		$this->attributes = new Set();
@@ -36,6 +44,7 @@ class ResourceDetail extends Helper {
 
 		foreach($raw_actions as $a) {
 			$action_name = $a->rel;
+
 			$this->methods->$action_name = function($params=null) use (&$client,$hash,$action_name) {
 				return $client->do_post("{$hash->href}/{$action_name}",$params);
 			};

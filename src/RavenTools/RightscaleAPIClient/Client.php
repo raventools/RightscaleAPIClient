@@ -64,7 +64,7 @@ class Client extends Helper {
 	}
 
 	private function init_methods() {
-		$data = $this->do_get($this->root_resource);
+		list($resource_type,$href,$data) = $this->do_get($this->root_resource);
 		$this->get_associated_resources($this,$data->links);
 	}
 
@@ -76,16 +76,21 @@ class Client extends Helper {
 	public function do_get($url,$params = null) {
 		$response = $this->request("GET",$url,$params);
 
-		if($response === false) {
-			return false;
-		} elseif(get_class($response) == "Guzzle\Http\Message\Response") {
+		if(get_class($response) == "Guzzle\Http\Message\Response") {
 			$code = $response->getStatusCode();
 			switch($code) {
 				case "200":
-					return $this->decodeBody($response);
+
+					if(strstr($response->getContentType(),"rightscale")) {
+						$resource_type = Helper::get_resource_type($response->getContentType());
+					} elseif(strstr("text/plain",$response->getContentType())) {
+						$resource_type = "text";
+					} else {
+						$resource_type = "";
+					}
+
 				case "301":
 				case "302":
-					error_log("got redirect");
 					break;
 				case "404":
 					throw new Exception("API route not found");
@@ -94,9 +99,16 @@ class Client extends Helper {
 			}
 		} else {
 			// why would this happen?
-			error_log("not false and not a response object");
-			return $response;
+			throw new Exception("got exceptional response from do_get. TODO meaningful error message");
 		}
+
+		if($resource_type == "text") {
+			$data = (object)array("text" => (string)$response->getBody());
+		} else {
+			$data = $this->decodeBody($response);
+		}
+
+		return array($resource_type, $url, $data);
 	}
 
 	public function do_post($url,$params) {
@@ -174,8 +186,9 @@ class Client extends Helper {
 			$response = $request->send();
 		} catch(BadResponseException $e) {
 			error_log("request exception ".$e->getMessage());
-			echo 'Request exception: ' . $e->getMessage();
+			echo 'Request exception: ' . $e->getMessage()."\n";
 			echo 'HTTP request URL: ' . $e->getRequest()->getUrl() . "\n";
+			echo 'HTTP query string: ' . $e->getRequest()->getQuery() . "\n";
 			echo 'HTTP request: ' . $e->getRequest() . "\n";
 			echo 'HTTP response status: ' . $e->getResponse()->getStatusCode() . "\n";
 			echo 'HTTP response: ' . $e->getResponse() . "\n";
