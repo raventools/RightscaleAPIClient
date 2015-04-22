@@ -54,9 +54,16 @@ class ResourceDetail extends Helper {
 
 		$this->get_associated_resources($client,$links,$associations);
 
-		// TODO
-		      # Some resources are not linked together, so they have to be manually
-		      # added here.
+		switch($resource_type) {
+			case "instance":
+				$this->methods->live_tasks = function($params=null) use (&$client,$href) {
+					if(Helper::has_id($params)) {
+						$path = "{$href}/live/tasks";
+						$path = Helper::add_id_and_params_to_path($path,$params);
+						return Resource::process($client,"live_task",$path);
+					}
+				};
+		}
 
 		foreach($hash as $k => $v) {
 			if($associations[$k]) {
