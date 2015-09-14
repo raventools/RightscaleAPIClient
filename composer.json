@@ -1,5 +1,6 @@
 {
-	"name":"RavenTools/RightscaleAPIClient",
+	"name":"raventools/rightscaleapiclient",
+	"description":"Client for Rightscale API 1.5",
 	"autoload":{
 		"psr-0":{
 			"RavenTools\\RightscaleAPIClient":"src"
