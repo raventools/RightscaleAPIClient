@@ -93,13 +93,13 @@ class Client extends Helper {
 				case "302":
 					break;
 				case "404":
-					throw new Exception("API route not found");
+					throw new \Exception("API route not found");
 				default:
-					throw new Exception("API error code {$code}");
+					throw new \Exception("API error code {$code}");
 			}
 		} else {
 			// why would this happen?
-			throw new Exception("got exceptional response from do_get. TODO meaningful error message");
+			throw new \Exception("got exceptional response from do_get. TODO meaningful error message");
 		}
 
 		if($resource_type == "text") {
@@ -145,7 +145,7 @@ class Client extends Helper {
 					throw new \Exception("API error code {$code}");
 			}
 		}
-		throw new Exception("shouldn't get here");
+		throw new \Exception("shouldn't get here");
 	}
 
 	public function do_put($url,$params) {
