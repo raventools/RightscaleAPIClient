@@ -1,13 +1,14 @@
 {
-	"name":"raventools/rightscaleapiclient",
-	"description":"Client for Rightscale API 1.5",
-	"autoload":{
-		"psr-0":{
-			"RavenTools\\RightscaleAPIClient":"src"
+	"name": "raventools/rightscaleapiclient",
+	"description": "Client for Rightscale API 1.5",
+	"license": "MIT",
+	"autoload": {
+		"psr-0": {
+			"RavenTools\\RightscaleAPIClient": "src"
 		}
 	},
-	"require":{
+	"require": {
 		"php": ">=5.5",
-		"guzzlehttp/guzzle":"^6.2"
+		"guzzlehttp/guzzle": "^6.2"
 	}
 }
