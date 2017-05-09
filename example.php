@@ -4,7 +4,7 @@ require_once("vendor/autoload.php");
 
 use RavenTools\RightscaleAPIClient\Client as RightscaleClient;
 
-$config = json_decode(file_get_contents("/home/phil/dev/deploy/application/config/rightscale.json"));
+$config = json_decode(file_get_contents("config.json"));
 
 $client = new RightscaleClient(array(
 				"account_id" => $config->account_id,
@@ -18,7 +18,14 @@ $client = new RightscaleClient(array(
 #$response = $client->alerts(array("id"=>31245779004))->show()->alert_spec();
 
 
-#$response = $client->cookbooks()->index();
+/*
+$response = $client->cookbooks()->index();
+foreach($response as $cookbook) {
+	echo $cookbook;
+}
+exit;
+*/
+
 /*
 $response = $client->deployments()->create(array(
 				"deployment[name]"=>"test api deployment",
@@ -31,10 +38,10 @@ $response = $client->deployments()->create(array(
 #$response = $client->deployments()->index();
 #$response = $client->deployments(array("id"=>435838001))->show()->servers()->index();
 
-$response = $client->tags()->by_tag(array(
-                    "resource_type" => "instances",
-                    "tags" => array("deploy:type=testing")
-                ));
+$response = $client->tags()->by_tag([
+	"resource_type" => "instances",
+	"tags" => ["deploy:type=testing"]
+]);
 
 $response = $response[0]->resource();
 

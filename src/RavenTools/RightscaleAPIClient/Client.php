@@ -2,10 +2,9 @@
 
 namespace RavenTools\RightscaleAPIClient;
 
-use Guzzle\Http\Client as GuzzleClient;
-use Guzzle\Plugin\Cookie\CookiePlugin;
-use Guzzle\Plugin\Cookie\CookieJar\ArrayCookieJar;
-use Guzzle\Http\Exception\BadResponseException;
+use GuzzleHttp\Client as GuzzleClient;
+use GuzzleHttp\Psr7\Response;
+use GuzzleHttp\Exception\BadResponseException;
 
 class Client extends Helper {
 
@@ -14,7 +13,7 @@ class Client extends Helper {
 	public $password = null;
 
 	private $guzzle = null;
-	private $guzzle_cookie = null;
+//	private $guzzle_cookie = null;
 	private $api_version = "1.5";
 
 	private $api_url = "https://us-4.rightscale.com";
@@ -27,7 +26,7 @@ class Client extends Helper {
 		$params = (object)$params;
 
 		// set required parameters
-		foreach(array("account_id","email","password") as $key) {
+		foreach(["account_id","email","password"] as $key) {
 			if(!isset($params->$key)) {
 				throw new \Exception("$key is a required parameter");
 			} else {
@@ -38,17 +37,21 @@ class Client extends Helper {
 		if(isset($params->guzzle)) {
 			$this->guzzle = $params->guzzle;
 		} else {
-			$this->guzzle = new GuzzleClient();
+			$this->guzzle = new GuzzleClient([
+				'cookies' => true
+			]);
 		}
 
+		/*
 		if(isset($params->guzzle_cookie)) {
 			$this->guzzle_cookie = $params->guzzle_cookie;
 		} else {
 
 			$this->guzzle_cookie = new CookiePlugin(new ArrayCookieJar());
 		}
+		 */
 
-		$this->guzzle->addSubscriber($this->guzzle_cookie);
+//		$this->guzzle->addSubscriber($this->guzzle_cookie);
 
 		$this->login();
 		$this->init_methods();
@@ -76,14 +79,15 @@ class Client extends Helper {
 	public function do_get($url,$params = null) {
 		$response = $this->request("GET",$url,$params);
 
-		if(get_class($response) == "Guzzle\Http\Message\Response") {
+		if($response instanceof Response) {
 			$code = $response->getStatusCode();
 			switch($code) {
 				case "200":
 
-					if(strstr($response->getContentType(),"rightscale")) {
-						$resource_type = Helper::get_resource_type($response->getContentType());
-					} elseif(strstr("text/plain",$response->getContentType())) {
+					$content_type = $response->getHeader('Content-Type')[0];
+					if(strstr($content_type,"rightscale")) {
+						$resource_type = Helper::get_resource_type($content_type);
+					} elseif(strstr("text/plain",$content_type)) {
 						$resource_type = "text";
 					} else {
 						$resource_type = "";
@@ -103,12 +107,12 @@ class Client extends Helper {
 		}
 
 		if($resource_type == "text") {
-			$data = (object)array("text" => (string)$response->getBody());
+			$data = (object)["text" => (string)$response->getBody()];
 		} else {
 			$data = $this->decodeBody($response);
 		}
 
-		return array($resource_type, $url, $data);
+		return [$resource_type, $url, $data];
 	}
 
 	public function do_post($url,$params) {
@@ -116,7 +120,7 @@ class Client extends Helper {
 
 		if($response === false) {
 			return false;
-		} elseif(get_class($response) == "Guzzle\Http\Message\Response") {
+		} elseif($response instanceof Response) {
 			$code = $response->getStatusCode();
 			switch($code) {
 				case "201":
@@ -127,8 +131,8 @@ class Client extends Helper {
 				case "204":
 					return null;
 				case "200":
-					$content_type = $response->getContentType();
-					$ret = array();
+					$content_type = $response->getHeader('Content-Type')[0];
+					$ret = [];
 					if(strpos($content_type,"rightscale") !== false) {
 						$resource_type = Helper::get_resource_type($content_type);
 						$data = $this->decodeBody($response);
@@ -160,40 +164,58 @@ class Client extends Helper {
 
 	private function request($type,$url,$params) {
 		try {
-			$request = $this->guzzle->$type(
-						"{$this->api_url}{$url}",
-						array("X-Api-Version"=>$this->api_version)
-					);
+			$headers = [
+				"X-Api-Version" => $this->api_version
+			];
 
-			$query = $request->getQuery();
-			$query->setAggregator(new RightscaleAggregator);
+			$query = $this->prepareQuery($params);
 
-			// add query parameters, array-ify if necessary
-			if(is_array($params)) {
-				foreach($params as $name => $value) {
-					if(is_array($value) && count($value) == 1) {
-						$query->add("{$name}[]",end($value));
-					} elseif(is_array($value)) {
-						foreach($value as $array_element) {
-							$query->add($name,$array_element);
-						}
-					} else {
-						$query->add($name,$value);
-					}
-				}
-			}
+			$response = $this->guzzle->request(
+				$type,
+				"{$this->api_url}{$url}",
+				[
+					'headers' => $headers, 
+					'query' => $query
+				]
+			);
 
-			$response = $request->send();
 		} catch(BadResponseException $e) {
 			error_log("request exception ".$e->getMessage());
 			echo 'Request exception: ' . $e->getMessage()."\n";
-			echo 'HTTP request URL: ' . $e->getRequest()->getUrl() . "\n";
-			echo 'HTTP query string: ' . $e->getRequest()->getQuery() . "\n";
-			echo 'HTTP request: ' . $e->getRequest() . "\n";
-			echo 'HTTP response status: ' . $e->getResponse()->getStatusCode() . "\n";
-			echo 'HTTP response: ' . $e->getResponse() . "\n";
 			return false;
 		}
 		return $response;
+	}
+
+	/**
+	 * rightscale requires arrays in query parameters to have no index,
+	 * ex: tag[]=deploy:type=testing&tag[]=deploy:type=production
+	 */
+	private function prepareQuery($params = []) {
+		if(!is_array($params)) {
+			return $params;
+		}
+
+		$query = [];
+
+		foreach($params as $key => $value) {
+			if(is_array($value)) {
+				foreach($value as $element) {
+					$query[] = sprintf(
+						'%s[]=%s',
+						$key,
+						urlencode($element)
+					);
+				}
+			} else {
+				$query[] = sprintf(
+					'%s=%s',
+					$key,
+					urlencode($value)
+				);
+			}
+		}
+
+		return implode("&",$query);
 	}
 }

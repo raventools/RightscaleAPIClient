@@ -8,32 +8,44 @@ class Helper {
 	protected $methods = null;
 
 	// Some resource_types are not the same as the last thing in the URL, put these here to ensure consistency
-	protected $INCONSISTENT_RESOURCE_TYPES = array(
-				"current_instance" => "instance",
-				"data" => "monitoring_metric_data",
-				"setting" => "multi_cloud_image_setting"
-			);
+	protected $INCONSISTENT_RESOURCE_TYPES = [
+		"current_instance" => "instance",
+		"data" => "monitoring_metric_data",
+		"setting" => "multi_cloud_image_setting"
+	];
 
 	/**
 	 * Some RightApi::Resources have methods that operate on the resource type itself
 	 * and not on a particular one (ie: without specifying an id). Place these here:
 	 */
-	protected $RESOURCE_SPECIAL_ACTIONS = array(
-				"instances" => array("multi_terminate" => "do_post", "multi_run_executable" => "do_post"),
-				"inputs" => array("multi_update" => "do_post"),
-				"tags" => array(
-					"by_tag" => "do_post", 
-					"by_resource" => "do_post", 
-					"multi_add" => "do_post", 
-					"multi_delete" => "do_post"
-					),
-				"backups" => array("cleanup" => "do_post")
-			);
+	protected $RESOURCE_SPECIAL_ACTIONS = [
+		"instances" => [
+			"multi_terminate" => "do_post", 
+			"multi_run_executable" => "do_post"
+		],
+		"inputs" => [
+			"multi_update" => "do_post"
+		],
+		"tags" => [
+			"by_tag" => "do_post", 
+			"by_resource" => "do_post", 
+			"multi_add" => "do_post", 
+			"multi_delete" => "do_post"
+		],
+		"backups" => [
+			"cleanup" => "do_post"
+		]
+	];
 
 	// List of resources that are available as instance-facing calls
-	protected $INSTANCE_FACING_RESOURCES = array(
-			"backups", "live_tasks", "volumes", "volume_attachments", "volume_snapshots", "volume_types"
-			);
+	protected $INSTANCE_FACING_RESOURCES = [
+		"backups", 
+		"live_tasks", 
+		"volumes", 
+		"volume_attachments", 
+		"volume_snapshots", 
+		"volume_types"
+	];
 
 	public function __construct() { 
 		if(is_null($this->methods)) {
@@ -44,7 +56,7 @@ class Helper {
 	/**
 	 * magic method to call an automatically-created closure method
 	 */
-	public function __call($method,$args=array()) {
+	public function __call($method,$args=[]) {
 		if(isset($this->methods->$method)) {
 			$method = $this->methods->$method;
 			if(!empty($args)) {
@@ -70,12 +82,12 @@ class Helper {
 	 */
 	protected function get_associated_resources($client,$links,Set &$associations=null) {
 
-		$rels = array();
+		$rels = [];
 		foreach($links as $l) {
 			if(array_key_exists($l->rel,$rels)) {
 				$rels[$l->rel][] = $l->href;
 			} else {
-				$rels[$l->rel] = array($l->href);
+				$rels[$l->rel] = [$l->href];
 			}
 		}
 
@@ -118,7 +130,7 @@ class Helper {
 					}
 
 				} else {
-					$resources = array();
+					$resources = [];
 					if(Helper::has_id($params) || Helper::is_singular($rel)) {
 						foreach($hrefs as $href) {
 							// user wants a single resource. Doing show, update, delete, etc
@@ -153,7 +165,7 @@ class Helper {
 	}
 
 	public static function is_singular($str) {
-		if(in_array($str,array("data","audit_entry","ip_address","process"))) {
+		if(in_array($str,["data","audit_entry","ip_address","process"])) {
 			return true;
 		}
 		return (substr($str,-1,1) != "s");
@@ -185,7 +197,7 @@ class Helper {
 		}
 
 		if(is_array($params)) {
-			$params_esc = array();
+			$params_esc = [];
 			array_walk($params, function($v,$k) use (&$params_esc) {
 						$params_esc[] = "{$k}=".urlencode($v);
 					});
@@ -216,8 +228,8 @@ class Helper {
 		if(!is_null($offset)) {
 			return Helper::get_singular(end(array_slice(explode("/",$href),$offset,1)));
 		} elseif(strstr($href,"rightscale")) {
-			preg_match("/\.rightscale\.([^+]+)\+json/",$href,$m);
-			return $m[1];
+			preg_match("/\.rightscale\.([^+]+)\+json/",$href,$matches);
+			return $matches[1];
 		}
 	} 
 
