@@ -1,6 +1,8 @@
 *.swp
 .*.swp
+.*.un~
 vendor/*
 composer.lock
 composer.phar
 rubyclient.rb
+config.json
