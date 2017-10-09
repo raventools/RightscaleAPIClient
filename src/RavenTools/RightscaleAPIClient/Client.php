@@ -125,7 +125,7 @@ class Client extends Helper {
 			switch($code) {
 				case "201":
 				case "202":
-					$href = $response->getLocation();
+					$href = $response->getHeader('Location');
 					$resource_type = Helper::get_resource_type($href,-2);
 					return Resource::process($this, $resource_type, $href);
 				case "204":
